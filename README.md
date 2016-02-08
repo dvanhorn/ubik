@@ -10,6 +10,9 @@ Programs are of the form:
 <defn> ::= (define <id> <expr>)
         |  (define (<id>+) <expr>)
 <expr> ::= <int>
+        |  #t
+        |  #f
+        |  <id>
         |  (<expr>*)
         |  (lambda (<id>+) <expr>)
         |  (if <expr> <expr> <expr>)
