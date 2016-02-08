@@ -5,7 +5,7 @@
 %token <int> INT
 %token <string> IDENT
 %token LPAREN RPAREN
-%token FUN DEF IF
+%token FUN DEF IF STRUCT
 %token TRUE FALSE
 %token EOF
 %start main             /* the entry point */
@@ -20,9 +20,11 @@ prog:
 	 { let (ds, e) = $2 in $1 :: ds, e }	 
 ;
 defn:
-    LPAREN DEF id expr RPAREN     { ($3, $4) }
+    LPAREN DEF id expr RPAREN     { Def ($3, $4) }
   | LPAREN DEF defids expr RPAREN 
-	   { let (x, xs) = $3 in (x, Fun (xs, $4)) }
+	   { let (x, xs) = $3 in Def (x, Fun (xs, $4)) }
+  | LPAREN STRUCT id ids RPAREN 
+	   { Struct ($3, $4) }
 ;
 expr:
     INT                       { Const (Int $1) }
@@ -37,11 +39,13 @@ id:
     IDENT                    { $1 }
 ;
 defids:
-  | LPAREN id defidsrest     { ($2, $3) }
+  | LPAREN id idsrest     { ($2, $3) }
 ;
-defidsrest:
-  | RPAREN                   { [] }
-  | id defidsrest            { $1 :: $2 }
 exprrest:
   | RPAREN                   { [] }
   | expr exprrest            { $1 :: $2 }
+ids:
+  | LPAREN idsrest           { $2 }
+idsrest:
+  | id idsrest               { $1 :: $2 }
+  | RPAREN                   { [] }

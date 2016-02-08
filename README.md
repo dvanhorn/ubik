@@ -9,6 +9,7 @@ Programs are of the form:
 <prog> ::= <defn>* <expr>
 <defn> ::= (define <id> <expr>)
         |  (define (<id>+) <expr>)
+        |  (struct <id> (<id>*))
 <expr> ::= <int>
         |  #t
         |  #f
@@ -19,8 +20,9 @@ Programs are of the form:
 ```
 
 The implementation supports: arbitrary precision integers,
-higher-order functions, some arithmetic operations (+, add1, sub1, =,
-expt), and list operations (list, cons, car, cdr, null, null?, pair?).
+higher-order functions, structures, some arithmetic operations (+,
+add1, sub1, =, expt), and list operations (list, cons, car, cdr, null,
+null?, pair?).
 
 To build and run:
 

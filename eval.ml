@@ -23,6 +23,10 @@ type value =
   | `Pair of value * value
   | `Proc of id list * expr * env 
   | `Rec of (value option) ref 
+  | `StructPred of id
+  | `StructCons of id * int
+  | `StructAcc  of id * int
+  | `StructVal  of id * value array
   (* Only in compiled code *)
   | `CProc of int * (venv -> value) * venv ]
 
@@ -50,19 +54,32 @@ let i2b (op : Int.t -> Int.t -> bool) : (value list -> value) =
 let add1 = i1i succ
 let sub1 = i1i pred
 let is_eq = i2b eq_int
-			
+		
+let make_struct_env (x : id) (xs : id list) : env =
+  (x ^ "?", `StructPred x) ::
+    (x, `StructCons (x, List.length xs)) ::
+      (List.mapi (fun i f -> (x ^ "-" ^ f, `StructAcc (x, i))) xs)
+
+let make_struct_nenv (x : id) (xs : id list) : nenv =
+  List.map (fun (x,v) -> (Var, x))  (make_struct_env x xs)
+
+let make_struct_venv (x : id) (xs : id list) : venv =
+  List.map (fun (x,v) -> v)  (make_struct_env x xs)
+
 let rec eval_p (p : prog) (r : env) : value =
   match p with
   | [], e -> eval_e e r
   | d::ds, e -> eval_p (ds, e) (eval_d d r)
 and eval_d (d : defn) (r : env) : env =
   match d with
-  | x, e -> 
+  | Def (x, e) -> 
      let b = ref None in
      let r'= (x, `Rec b) :: r in
      let v = eval_e e r' in
      b := Some v;
      r'
+  | Struct (x, xs) ->
+     make_struct_env x xs @ r
 and eval_e (e : expr) (r : env) : value =
   match e with
   | Const (Str s) -> `Str s
@@ -103,7 +120,14 @@ and apply (f : value) (vs : value list) : value =
   | `Expt  -> i2i pow vs
   | `Equal -> is_eq vs
   | `List  -> (List.fold_right (fun v vs -> `Pair (v, vs)) vs `Null)
-
+  | `StructPred x -> 
+     (match vs with
+      | [`StructVal (y, vs)] -> if x = y then `True else `False
+      | _ -> `False)
+  | `StructCons (x, i) -> `StructVal (x, Array.of_list vs)
+  | `StructAcc (x, i) ->
+     (match vs with
+      | [`StructVal (y, vs)] -> vs.(i))
 
 let r0 : env = 
   [("=",     `Equal);
@@ -147,7 +171,7 @@ let rec compile_p (p : prog) (rn : nenv) : venv -> value =
      fun r -> c (cds r)
 and compile_d (d : defn) (rn : nenv) : (nenv * (venv -> venv)) =
   match d with
-  | x, e -> 
+  | Def (x, e) -> 
      let c = compile_e e ((Def, x) :: rn) in
      (((Def, x) :: rn),
       fun r ->
@@ -155,6 +179,10 @@ and compile_d (d : defn) (rn : nenv) : (nenv * (venv -> venv)) =
       let r'= (`Rec b) :: r in
       b := Some (c r');
       r')
+  | Struct (x, xs) ->
+     make_struct_nenv x xs @ rn,
+     (@) (make_struct_venv x xs)
+     
 and compile_e (e : expr) (rn : nenv) : venv -> value =
   match e with
   | Const (Str s) -> let sv = `Str s in fun r -> sv
@@ -188,12 +216,16 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
   | App (e0, []) ->
      let c = compile_e e0 rn in
      fun r -> (match c r with
-	       | `CProc (0, c, r) -> c r)		
+	       | `CProc (0, c, r) -> c r
+	       | `StructCons (x, 0) -> `StructVal (x, [||]))
   | App (e0, [e1]) ->
      let c0 = compile_e e0 rn in
      let c1 = compile_e e1 rn in 
      fun r -> (match ((c0 r), (c1 r)) with
 	       | `CProc (1, c, r), v -> c (v :: r)
+	       | `StructCons (x, 1), v -> `StructVal (x, [| v |])
+	       | `StructPred x, `StructVal (y, _) -> if x=y then `True else `False
+	       | `StructAcc (x, i), `StructVal (y, vs) -> vs.(i)
 	       | `IsCons, `Pair (_,_) -> `True
 	       | `IsCons, _ -> `False
 	       | `IsNull, `Null -> `True
@@ -210,6 +242,7 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
      let c2 = compile_e e2 rn in 
      fun r -> (match ((c0 r), (c1 r), (c2 r)) with
 	       | `CProc (2, c, r), v1, v2 -> c (v1 :: v2 :: r)
+	       | `StructCons (x, 2), v1, v2 -> `StructVal (x, [| v1; v2 |])
 	       | `Cons, v1, v2 -> `Pair (v1, v2)
 	       | `Times, `Int i, `Int j -> `Int (mult i j)
 	       | `Plus, `Int i, `Int j -> `Int (add i j)
@@ -228,6 +261,7 @@ and apply_c (f : value) (vs : value list) : value =
   match f with
   | `CProc (n, c, r) -> c (vs @ r)
   | `List  -> (List.fold_right (fun v vs -> `Pair (v, vs)) vs `Null)
+  | `StructCons (x, i) -> `StructVal (x, Array.of_list vs)
 
 
 let print_ans (a : value) : unit =
@@ -239,13 +273,36 @@ let print_ans (a : value) : unit =
 	| `Null -> "()"
 	| `Pair (x, y) -> 
 	   "(" ^ str_of_ans x ^ " . " ^ str_of_ans y ^ ")"
-	| `Proc _ -> "<fun>"
 	| `True   -> "#t"
-	| `False  -> "#f")
+	| `False  -> "#f"
+	| `Proc _
+	| `Sub1
+	| `Add1
+	| `Sqr
+	| `Plus
+	| `Times
+	| `Equal
+	| `Expt
+	| `Cons
+	| `IsCons
+	| `Car
+	| `Cdr
+	| `IsNull
+	| `List
+	| `StructPred _
+	| `StructCons _
+	| `StructAcc _ -> "<fun>"
+	| `StructVal (x, vs) ->
+	   if Array.length vs = 0
+	   then "(" ^ x ^ ")"
+	   else
+	     "(" ^ x ^ " " 
+	     ^ String.concat " " (List.map str_of_ans (Array.to_list vs)) 
+	     ^ ")")
      in
      str_of_ans a)   		
 
 let run (p : prog) : value =
-  compile_p p n0 v0	    
+  compile_p p n0 v0
   (* for interpreter: *)
   (* eval_p p r0 *)
