@@ -15,7 +15,7 @@ Programs are of the form:
         |  #f
         |  <id>
         |  (<expr>+)
-        |  (lambda (<id>+) <expr>)
+        |  (lambda (<id>*) <expr>)
         |  (if <expr> <expr> <expr>)
         |  (match <expr> (<pat> <expr>)*)
 <pat>  ::= (<id>+)
