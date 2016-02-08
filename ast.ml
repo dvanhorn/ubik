@@ -5,7 +5,9 @@ and expr =
   | If of expr * expr * expr
   | App of expr * expr list
   | Fun of id list * expr
-  | Const of const 
+  | Const of const
+  | Match of expr * (pat * expr) list 
+and pat = id * (id list)
 and defn = 
   | Def of id * expr 
   | Struct of id * id list

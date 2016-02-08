@@ -93,6 +93,17 @@ and eval_e (e : expr) (r : env) : value =
      (match eval_e e1 r with
       | `False -> eval_e e3 r
       | _ -> eval_e e2 r)
+  | Match (e, cs) ->
+     (match eval_e e r with
+     | `StructVal (x, vs) ->
+	let rec m cs =
+	  (match cs with
+	   | ((y, ys), e) :: cs ->
+	      if x=y 
+	      then eval_e e ((List.combine ys (Array.to_list vs)) @ r)
+	      else m cs)
+	in
+	m cs)
   | Fun (xs, e) -> `Proc (xs, e, r)
   | App (e, es) ->
      let v  = eval_e e r in
@@ -209,6 +220,21 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
      (match c1 r with
       | `False -> c3 r
       | _ -> c2 r)
+  | Match (e0, cls) ->
+     let c0 = compile_e e0 rn in
+     let cs = compile_cls cls rn in
+     fun r ->
+     (match c0 r with
+      | `StructVal (x, vs) ->
+	 let rec m cs =
+	   (match cs with
+	    | (y, c) :: cs ->
+	       if x=y 
+	       then c ((Array.to_list vs) @ r)
+	       else m cs)
+	 in
+	 m cs)
+
   | Fun (xs, e) -> 
      let c = compile_e e ((List.map (fun x -> (Var, x)) xs) @ rn) in
      let i = List.length xs in
@@ -257,6 +283,8 @@ and compile_es (es : expr list) (rn : nenv) : venv -> value list =
   let cs = List.map (fun e -> compile_e e rn) es in
   fun r -> 
   List.map (fun c -> c r) cs
+and compile_cls (cls : ((id * id list) * expr) list) (rn : nenv) : (id * (venv -> value)) list =
+  List.map (fun ((x, xs), e) -> (x, compile_e e ((List.map (fun x -> (Var, x)) xs) @ rn))) cls
 and apply_c (f : value) (vs : value list) : value =
   match f with
   | `CProc (n, c, r) -> c (vs @ r)

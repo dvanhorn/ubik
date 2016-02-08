@@ -17,12 +17,14 @@ Programs are of the form:
         |  (<expr>+)
         |  (lambda (<id>+) <expr>)
         |  (if <expr> <expr> <expr>)
+        |  (match <expr> (<pat> <expr>)*)
+<pat>  ::= (<id>+)
 ```
 
 The implementation supports: arbitrary precision integers,
-higher-order functions, structures, some arithmetic operations (+,
-add1, sub1, =, expt), and list operations (list, cons, car, cdr, null,
-null?, pair?).
+higher-order functions, structures, simple pattern matching, some
+arithmetic operations (+, add1, sub1, =, expt), and list operations
+(list, cons, car, cdr, null, null?, pair?).
 
 To build and run:
 

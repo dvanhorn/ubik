@@ -10,6 +10,7 @@
 		"define", DEF;
 		"if", IF;
 		"struct", STRUCT;
+		"match", MATCH
 	      ]
 
 }
