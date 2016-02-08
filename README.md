@@ -13,7 +13,7 @@ Programs are of the form:
         |  #t
         |  #f
         |  <id>
-        |  (<expr>*)
+        |  (<expr>+)
         |  (lambda (<id>+) <expr>)
         |  (if <expr> <expr> <expr>)
 ```
