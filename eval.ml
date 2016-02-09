@@ -1,3 +1,4 @@
+
 open Ast
 open Int
 
@@ -94,16 +95,14 @@ and eval_e (e : expr) (r : env) : value =
       | False -> eval_e e3 r
       | _ -> eval_e e2 r)
   | Match (e, cs) ->
-     (match eval_e e r with
-     | StructVal (x, vs) ->
-	let rec m cs =
-	  (match cs with
-	   | ((y, ys), e) :: cs ->
-	      if x=y 
-	      then eval_e e ((List.combine ys (Array.to_list vs)) @ r)
-	      else m cs)
-	in
-	m cs)
+     let StructVal (x, vs) = eval_e e r in
+     let rec m cs =
+       let ((y, ys), e) :: cs = cs in
+       if x=y 
+       then eval_e e ((List.combine ys (Array.to_list vs)) @ r)
+       else m cs
+     in
+     m cs
   | Fun (xs, e) -> Proc (xs, e, r)
   | App (e, es) ->
      let v  = eval_e e r in
@@ -114,15 +113,17 @@ and eval_es (es : expr list) (r : env) : value list =
 and apply (f : value) (vs : value list) : value =
   match f with
   | Proc (xs, e, r) -> eval_e e (ext xs vs r)
-  | IsCons -> (match vs with 
-		| [Pair (_,_)] -> True
-		| [x] -> False)
-  | IsNull -> (match vs with 
-		| [Null] -> True
-		| [x] -> False)
-  | Cons  -> (match vs with [x; y] -> Pair (x, y))
-  | Car   -> (match vs with [Pair (x, y)] -> x)
-  | Cdr   -> (match vs with [Pair (x, y)] -> y)
+  | IsCons ->
+     (match vs with 
+      | [Pair _] -> True
+      | [x] -> False)
+  | IsNull ->
+     (match vs with 
+      | [Null] -> True
+      | [x] -> False)
+  | Cons  -> let [x; y] = vs in Pair (x, y)
+  | Car   -> let [Pair (x, y)] = vs in x
+  | Cdr   -> let [Pair (x, y)] = vs in y
   | Sub1  -> sub1 vs
   | Add1  -> add1 vs
   | Sqr   -> i1i square vs
@@ -137,8 +138,7 @@ and apply (f : value) (vs : value list) : value =
       | _ -> False)
   | StructCons (x, i) -> StructVal (x, Array.of_list vs)
   | StructAcc (x, i) ->
-     (match vs with
-      | [StructVal (y, vs)] -> vs.(i))
+     let [StructVal (y, vs)] = vs in vs.(i)
 
 let r0 : env = 
   [("=",     Equal);
@@ -204,14 +204,12 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
   | Const True -> let t = True in fun r -> t
   | Var x -> 
      (match find x rn with
-      | (Var, i) ->
+      | Var, i -> fun r -> List.nth r i
+      | Def, i ->
 	 fun r ->
-	 (match List.nth r i with
-	  | v -> v)
-      | (Def, i) ->
-	 fun r ->
-	 (match List.nth r i with
-	  | Rec x -> (let Some v = !x in v)))
+	 let Rec x = List.nth r i in
+	 let Some v = !x in 
+	 v)
   | If (e1, e2, e3) ->
      let c1 = compile_e e1 rn in
      let c2 = compile_e e2 rn in
@@ -224,16 +222,14 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
      let c0 = compile_e e0 rn in
      let cs = compile_cls cls rn in
      fun r ->
-     (match c0 r with
-      | StructVal (x, vs) ->
-	 let rec m cs =
-	   (match cs with
-	    | (y, c) :: cs ->
-	       if x=y 
-	       then c ((Array.to_list vs) @ r)
-	       else m cs)
-	 in
-	 m cs)
+     let StructVal (x, vs) = c0 r in
+     let rec m cs =
+       let (y, c) :: cs = cs in
+       if x=y 
+       then c ((Array.to_list vs) @ r)
+       else m cs
+     in
+     m cs
 
   | Fun (xs, e) -> 
      let c = compile_e e ((List.map (fun x -> (Var, x)) xs) @ rn) in
@@ -252,7 +248,7 @@ and compile_e (e : expr) (rn : nenv) : venv -> value =
 	       | StructCons (x, 1), v -> StructVal (x, [| v |])
 	       | StructPred x, StructVal (y, _) -> if x=y then True else False
 	       | StructAcc (x, i), StructVal (y, vs) -> vs.(i)
-	       | IsCons, Pair (_,_) -> True
+	       | IsCons, Pair _ -> True
 	       | IsCons, _ -> False
 	       | IsNull, Null -> True
 	       | IsNull, _ -> False
