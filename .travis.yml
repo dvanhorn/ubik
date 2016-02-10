@@ -1,0 +1,8 @@
+language: ocaml
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
+script: bash -ex .travis-ocaml.sh
+env:
+  - OCAML_VERSION=4.02
+os:
+  - linux
+
