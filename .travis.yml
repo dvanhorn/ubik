@@ -1,4 +1,5 @@
 language: ocaml
+sudo: required
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
 script: bash -ex .travis-ocaml.sh
 env:
