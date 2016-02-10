@@ -1,5 +1,7 @@
 # Ubik
 
+[![Build Status](https://travis-ci.org/dvanhorn/ubik.png?branch=master)](https://travis-ci.org/dvanhorn/ubik)
+
 A small Scheme interpreter and compiler, written in OCaml, for
 illustrative purposes.
 
