@@ -7,3 +7,5 @@ env:
 os:
   - linux
 
+script:
+  - make
