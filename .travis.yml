@@ -1,7 +1,13 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
-script: bash -ex .travis-ocaml.sh; make
+install:
+  - wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
+  - bash -ex .travis-ocaml.sh
+  - sudo apt-get install libgmp3-dev
+  - opam install --yes ocamlfind ounit zarith
+  - eval `opam config env`
+
+script: make; make test
 env:
   - OCAML_VERSION=4.02
 os:
