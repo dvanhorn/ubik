@@ -4,6 +4,7 @@ install:
   - wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
   - bash -ex .travis-ocaml.sh
   - opam install ocamlfind
+  - eval `opam config env`
 
 script: make; make test
 env:
