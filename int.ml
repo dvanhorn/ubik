@@ -1,16 +1,15 @@
-open Big_int
+type t = Z.t
 
-type t = big_int
+let succ = Z.succ
+let pred = Z.pred
+let square x = Z.pow x 2
+let mult = Z.mul
+let add = Z.add
+let eq_int = Z.equal
+let pow x y = Z.pow x (Z.to_int y)
+let int_of = Z.of_int
+let string_of_int = Z.to_string
 
-let succ = succ_big_int
-let pred = pred_big_int
-let square = square_big_int
-let mult = mult_big_int
-let add = add_big_int
-let eq_int = eq_big_int
-let pow = power_big_int_positive_big_int
-let int_of = big_int_of_int
-let string_of_int = string_of_big_int
 (* small int pow *)
 (* 
 let rec pow a = function
