@@ -33,6 +33,8 @@ expr:
   | LPAREN IF expr expr expr RPAREN
                               { If ($3, $4, $5) }
   | LPAREN expr exprs RPAREN  { App ($2, $3) }
+  | LPAREN FUN idlist expr RPAREN
+           { Fun ($3, $4) }
   | LPAREN MATCH expr clauses RPAREN
 	   { Match ($3, $4) }
   | id                        { Var $1 }

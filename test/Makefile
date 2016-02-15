@@ -3,7 +3,7 @@ test: test.ml
 		-I .. \
 		-package oUnit \
 		-package zarith \
-		../int.cmo ../eval.cmo \
+		../int.cmo ../eval.cmo ../lexer.cmo ../parser.cmo \
 		test.ml
 
 clean:

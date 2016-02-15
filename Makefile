@@ -13,8 +13,7 @@ int.cmo: int.ml
 	ocamlfind ocamlc -c -package zarith int.ml
 
 test: dummy
-	cd test && make test
-	test/test
+	cd test && make test && ./test
 
 clean:
 	-rm ubik *cmi *cmo *~ parser.mli lexer.ml parser.ml oUnit-anon.cache
